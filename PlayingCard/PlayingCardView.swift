@@ -8,11 +8,29 @@
 
 import UIKit
 
+@IBDesignable
 class PlayingCardView: UIView {
-
-    var rank: Int = 5 { didSet { setNeedsDisplay(); setNeedsLayout() } }
+    
+    @IBInspectable
+    var rank: Int = 12 { didSet { setNeedsDisplay(); setNeedsLayout() } }
+    
+    @IBInspectable
     var suit: String = "❤️"  { didSet { setNeedsDisplay(); setNeedsLayout() } }
+    
+    @IBInspectable
+    //var isFaceUp: Bool = false  { didSet { setNeedsDisplay(); setNeedsLayout() } } //cardback image check
     var isFaceUp: Bool = true  { didSet { setNeedsDisplay(); setNeedsLayout() } }
+    
+    var faceCardScale: CGFloat = SizeRatio.faceCardImageSizeToBoundsSize { didSet { setNeedsDisplay() } }
+    
+    @objc func adjustFaceCardScale(byHandlingGestureRecognizedBy recognizer: UIPinchGestureRecognizer){
+        switch recognizer.state {
+            case .changed,.ended:
+                faceCardScale *= recognizer.scale
+                recognizer.scale = 1.0
+            default: break
+        }
+    }
     
     private func centeredAttributedString(_ string: String, fontSize: CGFloat) -> NSAttributedString {
         var font = UIFont.preferredFont(forTextStyle: .body).withSize(fontSize)
@@ -64,7 +82,7 @@ class PlayingCardView: UIView {
     
     private func drawPips()
     {
-        let pipsPerRowForRank = [[0],[1],[1,1],[1,1,1],[2,2],[2,1,2],[2,2,2],[2,1,2,2],[2,2,2,2],[2,2,1,2,2,],[2,2,2,2,2,]]
+        let pipsPerRowForRank = [[0],[1],[1,1],[1,1,1],[2,2],[2,1,2],[2,2,2],[2,1,2,2],[2,2,2,2],[2,2,1,2,2],[2,2,2,2,2]]
         
         func createPipString(thatFits pipRect: CGRect) -> NSAttributedString {
             
@@ -91,7 +109,10 @@ class PlayingCardView: UIView {
             let pipRowSpacing = pipRect.size.height / CGFloat(pipsPerRow.count)
             pipRect.size.height = pipString.size().height
             pipRect.origin.y += (pipRowSpacing - pipRect.size.height)/2
+            
             for pipCount in pipsPerRow {
+                print("pipCount \(pipCount)  and pipsPerRow \(pipsPerRow)")
+
                 switch pipCount {
                 case 1:
                     pipString.draw(in: pipRect)
@@ -115,8 +136,9 @@ class PlayingCardView: UIView {
         roundedRect.fill()
         
         if isFaceUp {
-            if let faceCardImage = UIImage(named: rankString+suit) {
-                faceCardImage.draw(in: bounds.zoom(by: SizeRatio.faceCardImageSizeToBoundsSize))
+            if let faceCardImage = UIImage(named: rankString+suit, in: Bundle(for: self.classForCoder), compatibleWith: traitCollection ) {
+                //faceCardImage.draw(in: bounds.zoom(by: SizeRatio.faceCardImageSizeToBoundsSize))
+                faceCardImage.draw(in: bounds.zoom(by: faceCardScale))
             } else {
                 drawPips()
             }
@@ -190,7 +212,7 @@ extension CGRect {
         return CGRect(x: minX, y:minY, width: width/2, height: height)
     }
     var rightHalf: CGRect {
-        return CGRect(x: minX, y:minY, width: width/2, height: height)
+        return CGRect(x: midX, y:minY, width: width/2, height: height)
     }
     func inset(by size: CGSize) -> CGRect {
         return insetBy(dx: size.width, dy: size.height)
